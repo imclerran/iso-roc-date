@@ -2,12 +2,12 @@
 ##
 ## These functions include functions for creating dates from varioius numeric values, converting dates to and from ISO 8601 strings, and performing arithmetic operations on dates.
 module [
+    Date,
     add_date_and_duration,
     add_days,
     add_duration_and_date,
     add_months,
     add_years,
-    Date,
     days_in_month,
     from_iso_str,
     from_iso_u8,
@@ -56,14 +56,14 @@ unix_epoch = { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
 
 ## Create a `Date` object from the given year and day of the year.
 from_yd : Int *, Int * -> Date
-from_yd = \year, day_of_year ->
-    List.range { start: At 1, end: At 12 }
-    |> List.map \m -> Const.month_days { month: Num.toU64 m, is_leap: is_leap_year year }
-    |> List.walkUntil { days_remaining: Num.toU16 day_of_year, month: 1 } walk_until_month_func
-    |> \result -> { year: Num.toI64 year, month: Num.toU8 result.month, day_of_month: Num.toU8 result.days_remaining, day_of_year: Num.toU16 day_of_year }
+from_yd = |year, day_of_year|
+    List.range({ start: At(1), end: At(12) })
+    |> List.map(|m| Const.month_days({ month: Num.to_u64(m), is_leap: is_leap_year(year) }))
+    |> List.walk_until({ days_remaining: Num.to_u16(day_of_year), month: 1 }, walk_until_month_func)
+    |> |md| { year: Num.to_i64(year), month: Num.to_u8(md.month), day_of_month: Num.to_u8(md.days_remaining), day_of_year: Num.to_u16(day_of_year) }
 
 ## Check whether the given year is a leap year.
-is_leap_year = \year ->
+is_leap_year = |year|
     (
         year
         % Const.leap_interval
@@ -79,30 +79,30 @@ is_leap_year = \year ->
 ## Walk through the months of a year to find the month and day of the month
 walk_until_month_func : { days_remaining : U16, month : U8 }, U64 -> [Break { days_remaining : U16, month : U8 }, Continue { days_remaining : U16, month : U8 }]
 walk_until_month_func = \state, curr_month_days ->
-    if state.days_remaining <= Num.toU16 curr_month_days then
-        Break { days_remaining: state.days_remaining, month: state.month }
+    if state.days_remaining <= Num.to_u16(curr_month_days) then
+        Break({ days_remaining: state.days_remaining, month: state.month })
     else
         Continue { days_remaining: state.days_remaining - Num.toU16 curr_month_days, month: state.month + 1 }
 
 ## Create a `Date` object from the given year, month, and day of the month.
 from_ymd : Int *, Int *, Int * -> Date
-from_ymd = \year, month, day ->
-    { year: Num.toI64 year, month: Num.toU8 month, day_of_month: Num.toU8 day, day_of_year: ymd_to_days_in_year year month day }
+from_ymd = |year, month, day|
+    { year: Num.to_i64(year), month: Num.to_u8(month), day_of_month: Num.to_u8(day), day_of_year: ymd_to_days_in_year(year, month, day) }
 
 ## Convert the given year, month, and day of the month to the day of the year.
 ymd_to_days_in_year : Int *, Int *, Int * -> U16
-ymd_to_days_in_year = \year, month, day ->
-    List.range { start: At 0, end: Before month }
-    |> List.map \m -> Const.month_days { month: Num.toU64 m, is_leap: is_leap_year year }
+ymd_to_days_in_year = |year, month, day|
+    List.range({ start: At(0), end: Before(month) })
+    |> List.map(|m| Const.month_days({ month: Num.to_u64(m), is_leap: is_leap_year(year) }))
     |> List.sum
     |> Num.add (Num.toU64 day)
     |> Num.toU16
 
 ## Create a `Date` object from the given year, week, and day of the week.
 from_ywd : Int *, Int *, Int * -> Date
-from_ywd = \year, week, day ->
-    days_in_year = if is_leap_year year then 366 else 365
-    d = calendar_week_to_days_in_year week year |> Num.add (Num.toU64 day)
+from_ywd = |year, week, day|
+    days_in_year = if is_leap_year(year) then 366 else 365
+    d = calendar_week_to_days_in_year(week, year) |> Num.add(Num.to_u64(day))
     if d > days_in_year then
         from_yd (year + 1) (d - days_in_year)
     else
@@ -110,7 +110,7 @@ from_ywd = \year, week, day ->
 
 ## Convert the given calendar week and year to the day of the year.
 calendar_week_to_days_in_year : Int *, Int * -> U64
-calendar_week_to_days_in_year = \week, year ->
+calendar_week_to_days_in_year = |week, year|
     # Week 1 of a year is the first week with a majority of its days in that year
     # https://en.wikipedia.org/wiki/ISO_week_date#First_week
     y = year |> Num.toU64
@@ -127,8 +127,8 @@ calendar_week_to_days_in_year = \week, year ->
 
 ## Calculate the number of leap years since the epoch.
 num_leap_years_since_epoch : I64, [IncludeCurrent, ExcludeCurrent] -> I64
-num_leap_years_since_epoch = \year, inclusive ->
-    leap_incr = is_leap_year year |> \is_leap -> if is_leap && inclusive == IncludeCurrent then 1 else 0
+num_leap_years_since_epoch = |year, inclusive|
+    leap_incr = is_leap_year(year) |> |is_leap| if is_leap && inclusive == IncludeCurrent then 1 else 0
     next_year = if year > Const.epoch_year then year - 1 else year + 1
     when inclusive is
         ExcludeCurrent if year != Const.epoch_year -> num_leap_years_since_epoch next_year IncludeCurrent
@@ -138,9 +138,10 @@ num_leap_years_since_epoch = \year, inclusive ->
 
 ## Calculate the number of days since the epoch.
 num_days_since_epoch : Date -> I64
-num_days_since_epoch = \date ->
-    num_leap_years = num_leap_years_since_epoch date.year ExcludeCurrent
-    get_month_days = \m -> Const.month_days { month: m, is_leap: is_leap_year date.year }
+num_days_since_epoch = |date|
+    num_leap_years = num_leap_years_since_epoch(date.year, ExcludeCurrent)
+    get_month_days = |m| Const.month_days({ month: m, is_leap: is_leap_year(date.year) })
+
     if date.year >= Const.epoch_year then
         days_in_years = num_leap_years * 366 + (date.year - Const.epoch_year - num_leap_years) * 365
         List.map (List.range { start: At 1, end: Before date.month }) get_month_days
@@ -156,12 +157,12 @@ num_days_since_epoch = \date ->
         |> Num.mul -1
 
 ## Calculate the number of days since the epoch until the given year.
-num_days_since_epoch_until_year = \year ->
-    num_days_since_epoch { year, month: 1, day_of_month: 1, day_of_year: 1 }
+num_days_since_epoch_until_year = |year|
+    num_days_since_epoch({ year, month: 1, day_of_month: 1, day_of_year: 1 })
 
 ## Return the day of the week, from 0=Sunday to 6=Saturday
 weekday : I64, U8, U8 -> U8
-weekday = \year, month, day ->
+weekday = |year, month, day|
     year2xxx = (year % 400) + 2400 # to handle years before the epoch
     date = Date.from_ymd year2xxx month day
     days_since_epoch = Date.to_nanos_since_epoch date // Const.nanos_per_day
@@ -169,28 +170,28 @@ weekday = \year, month, day ->
 
 ## Returns the number of days in the given month of the given year.
 days_in_month : I64, U8 -> U8
-days_in_month = \year, month ->
-    Const.month_days { month, is_leap: is_leap_year year } |> Num.toU8
+days_in_month = |year, month|
+    Const.month_days({ month, is_leap: is_leap_year(year) }) |> Num.to_u8
 
 ## Create a `Date` object from the given year and week.
 from_yw : Int *, Int * -> Date
-from_yw = \year, week ->
-    from_ywd year week 1
+from_yw = |year, week|
+    from_ywd(year, week, 1)
 
 ## Convert the given `Date` to nanoseconds since the epoch.
 to_nanos_since_epoch : Date -> I128
-to_nanos_since_epoch = \date ->
-    days = num_days_since_epoch date
-    days |> Num.toI128 |> Num.mul Const.nanos_per_day
+to_nanos_since_epoch = |date|
+    days = num_days_since_epoch(date)
+    days |> Num.to_i128 |> Num.mul(Const.nanos_per_day)
 
 ## Create a `Date` object from the given nanoseconds since the epoch.
 from_nanos_since_epoch : Int * -> Date
-from_nanos_since_epoch = \nanos ->
-    days = nanos // Const.nanos_per_day |> \d -> if nanos % Const.nanos_per_day < 0 then d - 1 else d
-    from_nanos_helper (Num.toI128 days) 1970
+from_nanos_since_epoch = |nanos|
+    days = nanos // Const.nanos_per_day |> |d| if nanos % Const.nanos_per_day < 0 then d - 1 else d
+    from_nanos_helper(Num.to_i128(days), 1970)
 
 from_nanos_helper : I128, I64 -> Date
-from_nanos_helper = \days, year ->
+from_nanos_helper = |days, year|
     if days < 0 then
         from_nanos_helper (days + if is_leap_year (year - 1) then 366 else 365) (year - 1)
     else
@@ -203,14 +204,14 @@ from_nanos_helper = \days, year ->
 # TODO: allow for negative years
 ## Add the given number of years to the given `Date`.
 add_years : Date, Int * -> Date
-add_years = \date, years -> from_ymd (date.year + Num.toI64 years) date.month date.day_of_month
+add_years = |date, years| from_ymd((date.year + Num.to_i64(years)), date.month, date.day_of_month)
 
 # TODO: allow for negative months
 ## Add the given number of months to the given `Date`.
 add_months : Date, Int * -> Date
-add_months = \date, months ->
-    new_month_with_overflow = date.month + Num.toU8 months
-    new_year = date.year + Num.toI64 (new_month_with_overflow // 12)
+add_months = |date, months|
+    new_month_with_overflow = date.month + Num.to_u8(months)
+    new_year = date.year + Num.to_i64((new_month_with_overflow // 12))
     new_month = new_month_with_overflow % 12
     new_day = (
         if date.day_of_month > Num.toU8 (Const.month_days { month: new_month, is_leap: is_leap_year new_year }) then
@@ -222,13 +223,14 @@ add_months = \date, months ->
 
 ## Add the given number of days to the given `Date`.
 add_days : Date, Int * -> Date
-add_days = \date, days ->
-    add_days_helper date (Num.toI16 days)
+add_days = |date, days|
+    add_days_helper(date, Num.to_i16(days))
 
 add_days_helper : Date, I16 -> Date
-add_days_helper = \date, days ->
-    days_in_year = if is_leap_year date.year then 366 else 365
-    new_day_of_year = (Num.toI16 date.day_of_year) + days
+add_days_helper = |date, days|
+    days_in_year = if is_leap_year(date.year) then 366 else 365
+    new_day_of_year = (Num.to_i16(date.day_of_year)) + days
+
     if new_day_of_year > days_in_year then
         add_days_helper { year: date.year + 1, month: 1, day_of_month: 1, day_of_year: 0 } (new_day_of_year - days_in_year)
     else if new_day_of_year < 1 then
@@ -239,37 +241,37 @@ add_days_helper = \date, days ->
 
 ## Add the given `Duration` to the given `Date`.
 add_duration_and_date : Duration, Date -> Date
-add_duration_and_date = \duration, date ->
-    duration_nanos = to_nanoseconds duration
-    date_nanos = to_nanos_since_epoch date |> Num.toI128
+add_duration_and_date = |duration, date|
+    duration_nanos = to_nanoseconds(duration)
+    date_nanos = to_nanos_since_epoch(date) |> Num.to_i128
     duration_nanos + date_nanos |> from_nanos_since_epoch
 
 ## Add the given `Date` and `Duration`.
 add_date_and_duration : Date, Duration -> Date
-add_date_and_duration = \date, duration -> add_duration_and_date duration date
+add_date_and_duration = |date, duration| add_duration_and_date(duration, date)
 
 ## Convert the given `Date` to an ISO 8601 string.
 to_iso_str : Date -> Str
-to_iso_str = \date ->
-    expand_int_with_zeros date.year 4
-    |> Str.concat "-"
-    |> Str.concat (expand_int_with_zeros date.month 2)
-    |> Str.concat "-"
-    |> Str.concat (expand_int_with_zeros date.day_of_month 2)
+to_iso_str = |date|
+    expand_int_with_zeros(date.year, 4)
+    |> Str.concat("-")
+    |> Str.concat(expand_int_with_zeros(date.month, 2))
+    |> Str.concat("-")
+    |> Str.concat(expand_int_with_zeros(date.day_of_month, 2))
 
 ## Convert the `Date` to an ISO 8601 string as a list of UTF-8 bytes.
 to_iso_u8 : Date -> List U8
-to_iso_u8 = \date -> to_iso_str date |> Str.toUtf8
+to_iso_u8 = |date| to_iso_str(date) |> Str.to_utf8
 
 ## Convert the given ISO 8601 string to a `Date`.
 from_iso_str : Str -> Result Date [InvalidDateFormat]
-from_iso_str = \str -> Str.toUtf8 str |> from_iso_u8
+from_iso_str = |str| Str.to_utf8(str) |> from_iso_u8
 
 # TODO: More efficient parsing method?
 ## Convert the given ISO 8601 list of UTF-8 bytes to a `Date`.
 from_iso_u8 : List U8 -> Result Date [InvalidDateFormat]
-from_iso_u8 = \bytes ->
-    if validate_utf8_single_bytes bytes then
+from_iso_u8 = |bytes|
+    if validate_utf8_single_bytes(bytes) then
         when bytes is
             [_, _] -> parse_calendar_date_century bytes # YY
             [_, _, _, _] -> parse_calendar_date_year bytes # YYYY
@@ -287,8 +289,8 @@ from_iso_u8 = \bytes ->
         Err InvalidDateFormat
 
 parse_calendar_date_basic : List U8 -> Result Date [InvalidDateFormat]
-parse_calendar_date_basic = \bytes ->
-    when split_list_at_indices bytes [4, 6] is
+parse_calendar_date_basic = |bytes|
+    when split_list_at_indices(bytes, [4, 6]) is
         [year_bytes, month_bytes, day_bytes] ->
             when (utf8_to_int year_bytes, utf8_to_int month_bytes, utf8_to_int day_bytes) is
                 (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
@@ -299,8 +301,8 @@ parse_calendar_date_basic = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_calendar_date_extended : List U8 -> Result Date [InvalidDateFormat]
-parse_calendar_date_extended = \bytes ->
-    when split_list_at_indices bytes [4, 5, 7, 8] is
+parse_calendar_date_extended = |bytes|
+    when split_list_at_indices(bytes, [4, 5, 7, 8]) is
         [year_bytes, _, month_bytes, _, day_bytes] ->
             when (utf8_to_int_signed year_bytes, utf8_to_int month_bytes, utf8_to_int day_bytes) is
                 (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
@@ -311,20 +313,20 @@ parse_calendar_date_extended = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_calendar_date_century : List U8 -> Result Date [InvalidDateFormat]
-parse_calendar_date_century = \bytes ->
-    when utf8_to_int_signed bytes is
-        Ok century -> Date.from_ymd (century * 100) 1 1 |> Ok
-        Err _ -> Err InvalidDateFormat
+parse_calendar_date_century = |bytes|
+    when utf8_to_int_signed(bytes) is
+        Ok(century) -> Date.from_ymd((century * 100), 1, 1) |> Ok
+        Err(_) -> Err(InvalidDateFormat)
 
 parse_calendar_date_year : List U8 -> Result Date [InvalidDateFormat]
-parse_calendar_date_year = \bytes ->
-    when utf8_to_int_signed bytes is
-        Ok year -> Date.from_ymd year 1 1 |> Ok
-        Err _ -> Err InvalidDateFormat
+parse_calendar_date_year = |bytes|
+    when utf8_to_int_signed(bytes) is
+        Ok(year) -> Date.from_ymd(year, 1, 1) |> Ok
+        Err(_) -> Err(InvalidDateFormat)
 
 parse_calendar_date_month : List U8 -> Result Date [InvalidDateFormat]
-parse_calendar_date_month = \bytes ->
-    when split_list_at_indices bytes [4, 5] is
+parse_calendar_date_month = |bytes|
+    when split_list_at_indices(bytes, [4, 5]) is
         [year_bytes, _, month_bytes] ->
             when (utf8_to_int_signed year_bytes, utf8_to_int month_bytes) is
                 (Ok year, Ok month) if month >= 1 && month <= 12 ->
@@ -335,8 +337,8 @@ parse_calendar_date_month = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_ordinal_date_basic : List U8 -> Result Date [InvalidDateFormat]
-parse_ordinal_date_basic = \bytes ->
-    when split_list_at_indices bytes [4] is
+parse_ordinal_date_basic = |bytes|
+    when split_list_at_indices(bytes, [4]) is
         [year_bytes, day_bytes] ->
             when (utf8_to_int_signed year_bytes, utf8_to_int day_bytes) is
                 (Ok year, Ok day) if day >= 1 && day <= 366 ->
@@ -347,8 +349,8 @@ parse_ordinal_date_basic = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_ordinal_date_extended : List U8 -> Result Date [InvalidDateFormat]
-parse_ordinal_date_extended = \bytes ->
-    when split_list_at_indices bytes [4, 5] is
+parse_ordinal_date_extended = |bytes|
+    when split_list_at_indices(bytes, [4, 5]) is
         [year_bytes, _, day_bytes] ->
             when (utf8_to_int_signed year_bytes, utf8_to_int day_bytes) is
                 (Ok year, Ok day) if day >= 1 && day <= 366 ->
@@ -359,8 +361,8 @@ parse_ordinal_date_extended = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_week_date_basic : List U8 -> Result Date [InvalidDateFormat]
-parse_week_date_basic = \bytes ->
-    when split_list_at_indices bytes [4, 5, 7] is
+parse_week_date_basic = |bytes|
+    when split_list_at_indices(bytes, [4, 5, 7]) is
         [year_bytes, _, week_bytes, day_bytes] ->
             when (utf8_to_int year_bytes, utf8_to_int week_bytes, utf8_to_int day_bytes) is
                 (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
@@ -371,8 +373,8 @@ parse_week_date_basic = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_week_date_extended : List U8 -> Result Date [InvalidDateFormat]
-parse_week_date_extended = \bytes ->
-    when split_list_at_indices bytes [4, 6, 8, 9] is
+parse_week_date_extended = |bytes|
+    when split_list_at_indices(bytes, [4, 6, 8, 9]) is
         [year_bytes, _, week_bytes, _, day_bytes] ->
             when (utf8_to_int year_bytes, utf8_to_int week_bytes, utf8_to_int day_bytes) is
                 (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
@@ -383,8 +385,8 @@ parse_week_date_extended = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_week_date_reduced_basic : List U8 -> Result Date [InvalidDateFormat]
-parse_week_date_reduced_basic = \bytes ->
-    when split_list_at_indices bytes [4, 5] is
+parse_week_date_reduced_basic = |bytes|
+    when split_list_at_indices(bytes, [4, 5]) is
         [year_bytes, _, week_bytes] ->
             when (utf8_to_int year_bytes, utf8_to_int week_bytes) is
                 (Ok year, Ok week) if week >= 1 && week <= 52 ->
@@ -395,8 +397,8 @@ parse_week_date_reduced_basic = \bytes ->
         _ -> Err InvalidDateFormat
 
 parse_week_date_reduced_extended : List U8 -> Result Date [InvalidDateFormat]
-parse_week_date_reduced_extended = \bytes ->
-    when split_list_at_indices bytes [4, 6] is
+parse_week_date_reduced_extended = |bytes|
+    when split_list_at_indices(bytes, [4, 6]) is
         [year_bytes, _, week_bytes] ->
             when (utf8_to_int year_bytes, utf8_to_int week_bytes) is
                 (Ok year, Ok week) if week >= 1 && week <= 52 ->

@@ -7,8 +7,8 @@ import pf.Stdout
 import pf.Utc
 import dt.DateTime
 
-main =
-    utc_now = Utc.now! {}
+main! = |_|
+    utc_now = Utc.now!({})
     now_str =
         utc_now
         |> Utc.toNanosSinceEpoch

@@ -2,6 +2,7 @@
 ##
 ## These functions include functions for creating `DateTime` objects from various numeric values, converting `DateTime`s to and from ISO 8601 strings, and performing arithmetic operations on `DateTime`s.
 module [
+    DateTime,
     add_date_time_and_duration,
     add_days,
     add_duration_and_date_time,
@@ -11,7 +12,6 @@ module [
     add_nanoseconds,
     add_seconds,
     add_years,
-    DateTime,
     from_iso_str,
     from_iso_u8,
     from_nanos_since_epoch,

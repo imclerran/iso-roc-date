@@ -7,8 +7,9 @@ import pf.Http
 import pf.Stdout
 import dt.DateTime
 
-main = 
-    response = Http.send! (format_request "America/Chicago")
+main! = |_|
+    response = Http.send!(format_request("America/Chicago"))
+
     response_body =
         when response |> Http.handleStringResponse is
             Err err -> crash (Http.errorToString err)
@@ -26,8 +27,8 @@ main =
     Stdout.line! "The current Zulut date is: $(date_str)"
     Stdout.line! "The current Zulu time is: $(time_str)"
 
-format_request = \timezone -> {
-    method: Get,
+format_request = |timezone| {
+    method: GET,
     headers: [],
     url: "http://worldtimeapi.org/api/timezone/$(timezone).txt",
     mimeType: "",
@@ -35,11 +36,11 @@ format_request = \timezone -> {
     timeout: TimeoutMilliseconds 5000,
 }
 
-get_iso_string = \body ->
-    when Str.splitOn body "\n" |> List.get 3 is
-        Ok line ->
-            when Str.splitFirst line ":" is
-                Ok line_parts -> line_parts.after |> Str.trim
-                Err _ -> crash "Error splitting line at delimiter"
+get_iso_string = |body|
+    when Str.split_on(body, "\n") |> List.get(3) is
+        Ok(line) ->
+            when Str.split_first(line, ":") is
+                Ok(line_parts) -> line_parts.after |> Str.trim
+                Err(_) -> crash("Error splitting line at delimiter")
 
         Err _ -> crash "Error getting output line"

@@ -54,9 +54,9 @@ midnight : Time
 midnight = { hour: 0, minute: 0, second: 0, nanosecond: 0 }
 
 normalize : Time -> Time
-normalize = \time ->
-    h_normalized = time.hour |> Num.rem Const.hours_per_day |> Num.add Const.hours_per_day |> Num.rem Const.hours_per_day
-    from_hmsn h_normalized time.minute time.second time.nanosecond
+normalize = |time|
+    h_normalized = time.hour |> Num.rem(Const.hours_per_day) |> Num.add(Const.hours_per_day) |> Num.rem(Const.hours_per_day)
+    from_hmsn(h_normalized, time.minute, time.second, time.nanosecond)
 
 expect Time.normalize (from_hms -1 0 0) == from_hms 23 0 0
 expect Time.normalize (from_hms 24 0 0) == from_hms 0 0 0
@@ -64,26 +64,26 @@ expect Time.normalize (from_hms 25 0 0) == from_hms 1 0 0
 
 ## Create a `Time` object from the hour, minute, and second.
 from_hms : Int *, Int *, Int * -> Time
-from_hms = \hour, minute, second -> { hour: Num.toI8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: 0u32 }
+from_hms = |hour, minute, second| { hour: Num.to_i8(hour), minute: Num.to_u8(minute), second: Num.to_u8(second), nanosecond: 0u32 }
 
 ## Create a `Time` object from the hour, minute, second, and nanosecond.
 from_hmsn : Int *, Int *, Int *, Int * -> Time
-from_hmsn = \hour, minute, second, nanosecond ->
-    { hour: Num.toI8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: Num.toU32 nanosecond }
+from_hmsn = |hour, minute, second, nanosecond|
+    { hour: Num.to_i8(hour), minute: Num.to_u8(minute), second: Num.to_u8(second), nanosecond: Num.to_u32(nanosecond) }
 
 ## Convert nanoseconds since midnight to a `Time` object.
 to_nanos_since_midnight : Time -> I64
-to_nanos_since_midnight = \time ->
-    h_nanos = time.hour |> Num.toI64 |> Num.mul Const.nanos_per_hour |> Num.toI64
-    m_nanos = time.minute |> Num.toI64 |> Num.mul Const.nanos_per_minute |> Num.toI64
-    s_nanos = time.second |> Num.toI64 |> Num.mul Const.nanos_per_second |> Num.toI64
-    nanos = time.nanosecond |> Num.toI64
+to_nanos_since_midnight = |time|
+    h_nanos = time.hour |> Num.to_i64 |> Num.mul(Const.nanos_per_hour) |> Num.to_i64
+    m_nanos = time.minute |> Num.to_i64 |> Num.mul(Const.nanos_per_minute) |> Num.to_i64
+    s_nanos = time.second |> Num.to_i64 |> Num.mul(Const.nanos_per_second) |> Num.to_i64
+    nanos = time.nanosecond |> Num.to_i64
     h_nanos + m_nanos + s_nanos + nanos
 
 ## Convert a `Time` object to the number of nanoseconds since midnight.
 from_nanos_since_midnight : Int * -> Time
-from_nanos_since_midnight = \nanos ->
-    nanos1 = nanos |> Num.rem Const.nanos_per_day |> Num.add Const.nanos_per_day |> Num.rem Const.nanos_per_day |> Num.toU64
+from_nanos_since_midnight = |nanos|
+    nanos1 = nanos |> Num.rem(Const.nanos_per_day) |> Num.add(Const.nanos_per_day) |> Num.rem(Const.nanos_per_day) |> Num.to_u64
     nanos2 = nanos1 % nanos_per_hour
     minute = nanos2 // nanos_per_minute |> Num.toU8
     nanos3 = nanos2 % nanos_per_minute
@@ -94,34 +94,34 @@ from_nanos_since_midnight = \nanos ->
 
 ## Add nanoseconds to a `Time` object.
 add_nanoseconds : Time, Int * -> Time
-add_nanoseconds = \time, nanos ->
-    to_nanos_since_midnight time + Num.toI64 nanos |> from_nanos_since_midnight
+add_nanoseconds = |time, nanos|
+    to_nanos_since_midnight(time) + Num.to_i64(nanos) |> from_nanos_since_midnight
 
 ## Add seconds to a `Time` object.
 add_seconds : Time, Int * -> Time
-add_seconds = \time, seconds -> add_nanoseconds time (seconds * Const.nanos_per_second)
+add_seconds = |time, seconds| add_nanoseconds(time, (seconds * Const.nanos_per_second))
 
 ## Add minutes to a `Time` object.
 add_minutes : Time, Int * -> Time
-add_minutes = \time, minutes -> add_nanoseconds time (minutes * Const.nanos_per_minute)
+add_minutes = |time, minutes| add_nanoseconds(time, (minutes * Const.nanos_per_minute))
 
 ## Add hours to a `Time` object.
 add_hours : Time, Int * -> Time
-add_hours = \time, hours -> add_nanoseconds time (hours * Const.nanos_per_hour)
+add_hours = |time, hours| add_nanoseconds(time, (hours * Const.nanos_per_hour))
 
 ## Add a `Duration` object to a `Time` object.
 add_duration_and_time : Duration, Time -> Time
-add_duration_and_time = \duration, time ->
-    duration_nanos = Duration.to_nanoseconds duration
-    time_nanos = to_nanos_since_midnight time |> Num.toI128
+add_duration_and_time = |duration, time|
+    duration_nanos = Duration.to_nanoseconds(duration)
+    time_nanos = to_nanos_since_midnight(time) |> Num.to_i128
     (duration_nanos + time_nanos) |> from_nanos_since_midnight
 
 ## Add a `Time` object to a `Duration` object.
 add_time_and_duration : Time, Duration -> Time
-add_time_and_duration = \time, duration -> add_duration_and_time duration time
+add_time_and_duration = |time, duration| add_duration_and_time(duration, time)
 
 strip_tand_z : List U8 -> List U8
-strip_tand_z = \bytes ->
+strip_tand_z = |bytes|
     when bytes is
         ['T', .. as tail] -> strip_tand_z tail
         [.. as head, 'Z'] -> head
@@ -129,24 +129,24 @@ strip_tand_z = \bytes ->
 
 ## Convert a `Time` object to an ISO 8601 string.
 to_iso_str : Time -> Str
-to_iso_str = \time ->
-    expand_int_with_zeros time.hour 2
-    |> Str.concat ":"
-    |> Str.concat (expand_int_with_zeros time.minute 2)
-    |> Str.concat ":"
-    |> Str.concat (expand_int_with_zeros time.second 2)
-    |> Str.concat (nanos_to_frac_str time.nanosecond)
+to_iso_str = |time|
+    expand_int_with_zeros(time.hour, 2)
+    |> Str.concat(":")
+    |> Str.concat(expand_int_with_zeros(time.minute, 2))
+    |> Str.concat(":")
+    |> Str.concat(expand_int_with_zeros(time.second, 2))
+    |> Str.concat(nanos_to_frac_str(time.nanosecond))
 
 nanos_to_frac_str : U32 -> Str
-nanos_to_frac_str = \nanos ->
-    length = count_frac_width nanos 9
-    untrimmed_str = (if nanos == 0 then "" else Str.concat "," (expand_int_with_zeros nanos length))
-    when untrimmed_str |> Str.toUtf8 |> List.takeFirst (length + 1) |> Str.fromUtf8 is
-        Ok str -> str
-        Err _ -> untrimmed_str
+nanos_to_frac_str = |nanos|
+    length = count_frac_width(nanos, 9)
+    untrimmed_str = (if nanos == 0 then "" else Str.concat(",", expand_int_with_zeros(nanos, length)))
+    when untrimmed_str |> Str.to_utf8 |> List.take_first((length + 1)) |> Str.from_utf8 is
+        Ok(str) -> str
+        Err(_) -> untrimmed_str
 
 count_frac_width : U32, Int _ -> Int _
-count_frac_width = \num, width ->
+count_frac_width = |num, width|
     if num == 0 then
         0
     else if num % 10 == 0 then
@@ -156,18 +156,18 @@ count_frac_width = \num, width ->
 
 ## Convert a `Time` object to an ISO 8601 list of UTF-8 bytes.
 to_iso_u8 : Time -> List U8
-to_iso_u8 = \time -> to_iso_str time |> Str.toUtf8
+to_iso_u8 = |time| to_iso_str(time) |> Str.to_utf8
 
 ## Convert an ISO 8601 string to a `Time` object.
 from_iso_str : Str -> Result Time [InvalidTimeFormat]
-from_iso_str = \str -> Str.toUtf8 str |> from_iso_u8
+from_iso_str = |str| Str.to_utf8(str) |> from_iso_u8
 
 ## Convert an ISO 8601 list of UTF-8 bytes to a `Time` object.
 from_iso_u8 : List U8 -> Result Time [InvalidTimeFormat]
-from_iso_u8 = \bytes ->
-    if validate_utf8_single_bytes bytes then
-        stripped_bytes = strip_tand_z bytes
-        when (split_utf8_and_keep_delimiters stripped_bytes ['.', ',', '+', '-'], List.last bytes) is
+from_iso_u8 = |bytes|
+    if validate_utf8_single_bytes(bytes) then
+        stripped_bytes = strip_tand_z(bytes)
+        when (split_utf8_and_keep_delimiters(stripped_bytes, ['.', ',', '+', '-']), List.last(bytes)) is
             # time.fractionaltime+timeoffset / time,fractionaltime-timeoffset
             ([time_bytes, [byte1], fractional_bytes, [byte2], offset_bytes], Ok last_byte) if last_byte != 'Z' ->
                 time_res = parse_fractional_time time_bytes (List.join [[byte1], fractional_bytes])
@@ -190,7 +190,7 @@ from_iso_u8 = \bytes ->
     else
         Err InvalidTimeFormat
 
-combine_time_and_offset_results = \time_res, offset_res ->
+combine_time_and_offset_results = |time_res, offset_res|
     when (time_res, offset_res) is
         (Ok time, Ok offset) ->
             Time.add_time_and_duration time offset |> Ok
@@ -198,7 +198,7 @@ combine_time_and_offset_results = \time_res, offset_res ->
         (_, _) -> Err InvalidTimeFormat
 
 parse_whole_time : List U8 -> Result Time [InvalidTimeFormat]
-parse_whole_time = \bytes ->
+parse_whole_time = |bytes|
     when bytes is
         [_, _] -> parse_local_time_hour bytes # hh
         [_, _, _, _] -> parse_local_time_minute_basic bytes # hhmm
@@ -208,8 +208,8 @@ parse_whole_time = \bytes ->
         _ -> Err InvalidTimeFormat
 
 parse_fractional_time : List U8, List U8 -> Result Time [InvalidTimeFormat]
-parse_fractional_time = \whole_bytes, fractional_bytes ->
-    combine_duration_res_and_time = \duration_res, time ->
+parse_fractional_time = |whole_bytes, fractional_bytes|
+    combine_duration_res_and_time = |duration_res, time|
         when duration_res is
             Ok duration -> Time.add_time_and_duration time duration |> Ok
             Err _ -> Err InvalidTimeFormat
@@ -237,7 +237,7 @@ parse_fractional_time = \whole_bytes, fractional_bytes ->
         _ -> Err InvalidTimeFormat
 
 parse_time_offset : List U8 -> Result Duration [InvalidTimeFormat]
-parse_time_offset = \bytes ->
+parse_time_offset = |bytes|
     when bytes is
         ['-', h1, h2] ->
             parse_time_offset_help h1 h2 '0' '0' 1
@@ -260,29 +260,29 @@ parse_time_offset = \bytes ->
         _ -> Err InvalidTimeFormat
 
 parse_time_offset_help : U8, U8, U8, U8, I64 -> Result Duration [InvalidTimeFormat]
-parse_time_offset_help = \h1, h2, m1, m2, sign ->
-    is_valid_offset = \offset -> if offset >= -14 * Const.nanos_per_hour && offset <= 12 * Const.nanos_per_hour then Valid else Invalid
-    when (utf8_to_int_signed [h1, h2], utf8_to_int_signed [m1, m2]) is
-        (Ok hour, Ok minute) ->
+parse_time_offset_help = |h1, h2, m1, m2, sign|
+    is_valid_offset = |offset| if offset >= -14 * Const.nanos_per_hour && offset <= 12 * Const.nanos_per_hour then Valid else Invalid
+    when (utf8_to_int_signed([h1, h2]), utf8_to_int_signed([m1, m2])) is
+        (Ok(hour), Ok(minute)) ->
             offset_nanos = sign * (hour * Const.nanos_per_hour + minute * Const.nanos_per_minute)
-            when is_valid_offset offset_nanos is
-                Valid -> Duration.from_nanoseconds offset_nanos |> Result.mapErr \_ -> InvalidTimeFormat
-                Invalid -> Err InvalidTimeFormat
+            when is_valid_offset(offset_nanos) is
+                Valid -> Duration.from_nanoseconds(offset_nanos) |> Result.map_err(|_| InvalidTimeFormat)
+                Invalid -> Err(InvalidTimeFormat)
 
         (_, _) -> Err InvalidTimeFormat
 
 parse_local_time_hour : List U8 -> Result Time [InvalidTimeFormat]
-parse_local_time_hour = \bytes ->
-    when utf8_to_int_signed bytes is
-        Ok hour if hour >= 0 && hour <= 24 ->
-            Time.from_hms hour 0 0 |> Ok
+parse_local_time_hour = |bytes|
+    when utf8_to_int_signed(bytes) is
+        Ok(hour) if hour >= 0 && hour <= 24 ->
+            Time.from_hms(hour, 0, 0) |> Ok
 
         Ok _ -> Err InvalidTimeFormat
         Err _ -> Err InvalidTimeFormat
 
 parse_local_time_minute_basic : List U8 -> Result Time [InvalidTimeFormat]
-parse_local_time_minute_basic = \bytes ->
-    when split_list_at_indices bytes [2] is
+parse_local_time_minute_basic = |bytes|
+    when split_list_at_indices(bytes, [2]) is
         [hour_bytes, minute_bytes] ->
             when (utf8_to_int_signed hour_bytes, utf8_to_int_signed minute_bytes) is
                 (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
@@ -296,8 +296,8 @@ parse_local_time_minute_basic = \bytes ->
         _ -> Err InvalidTimeFormat
 
 parse_local_time_minute_extended : List U8 -> Result Time [InvalidTimeFormat]
-parse_local_time_minute_extended = \bytes ->
-    when split_list_at_indices bytes [2, 3] is
+parse_local_time_minute_extended = |bytes|
+    when split_list_at_indices(bytes, [2, 3]) is
         [hour_bytes, _, minute_bytes] ->
             when (utf8_to_int_signed hour_bytes, utf8_to_int_signed minute_bytes) is
                 (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
@@ -311,8 +311,8 @@ parse_local_time_minute_extended = \bytes ->
         _ -> Err InvalidTimeFormat
 
 parse_local_time_basic : List U8 -> Result Time [InvalidTimeFormat]
-parse_local_time_basic = \bytes ->
-    when split_list_at_indices bytes [2, 4] is
+parse_local_time_basic = |bytes|
+    when split_list_at_indices(bytes, [2, 4]) is
         [hour_bytes, minute_bytes, second_bytes] ->
             when (utf8_to_int_signed hour_bytes, utf8_to_int_signed minute_bytes, utf8_to_int_signed second_bytes) is
                 (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->
@@ -326,8 +326,8 @@ parse_local_time_basic = \bytes ->
         _ -> Err InvalidTimeFormat
 
 parse_local_time_extended : List U8 -> Result Time [InvalidTimeFormat]
-parse_local_time_extended = \bytes ->
-    when split_list_at_indices bytes [2, 3, 5, 6] is
+parse_local_time_extended = |bytes|
+    when split_list_at_indices(bytes, [2, 3, 5, 6]) is
         [hour_bytes, _, minute_bytes, _, second_bytes] ->
             when (utf8_to_int_signed hour_bytes, utf8_to_int_signed minute_bytes, utf8_to_int_signed second_bytes) is
                 (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->

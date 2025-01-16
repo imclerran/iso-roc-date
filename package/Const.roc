@@ -55,8 +55,8 @@ days_per_leap_year = 366
 days_per_week = 7
 weeks_per_year = 52
 
-month_days : { month : Int *, is_leap ? Bool } -> U64
-month_days = \{ month, is_leap ? Bool.false } ->
+month_days : { month : Int *, is_leap ?? Bool } -> U64
+month_days = |{ month, is_leap ?? Bool.false }|
     when month is
         1 | 3 | 5 | 7 | 8 | 10 | 12 -> 31
         4 | 6 | 9 | 11 -> 30
